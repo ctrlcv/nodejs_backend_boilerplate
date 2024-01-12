@@ -10,39 +10,48 @@ exports.signin = async function(req, res) {
 
         if (Utils.isEmpty(email) || Utils.isEmpty(password)) {
             return res.status(400).json({ 
-                success: false, 
-                message: "이메일과 비밀번호를 입력하세요." 
+                code: "8001",
+                message: "There is no required value.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
             });
         }
 
-        let findUser = await User.findUser(email);
-        if (Utils.isEmpty(findUser) || findUser.length === 0) {
+        let findUsers = await User.findUser(email);
+        if (Utils.isEmpty(findUsers) || findUsers.length === 0) {
             return res.status(400).json({
-                success: false,
-                message: "존재하지 않는 사용자입니다."
+                code: "8002",
+                message: "This user does not exist.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
             });
         }
+        
+        const findUser = findUsers[0];
 
-        // console.log(findUser);
-
-        let isMatch = await bcrypt.compare(password, findUser[0].password);
+        let isMatch = await bcrypt.compare(password, findUser.password);
         if (isMatch === false) {
             return res.status(400).json({ 
-                success: false,
-                message: "비밀번호가 올바르지 않습니다."
+                code: "8003",
+                message: "ID/PW is incorrect.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
             });
         }
 
         const payload = {
-            id: findUser[0].id,
-            name: findUser[0].name,
-            email: findUser[0].email
+            id: findUser.id,
+            name: findUser.name,
+            email: findUser.email
         };
 
         const refreshPayload = {
-            email: findUser[0].email,
-            name: findUser[0].name,
-            id: findUser[0].id
+            email: findUser.email,
+            name: findUser.name,
+            id: findUser.id
         };
 
         let expiresdate = new Date();
@@ -51,43 +60,49 @@ exports.signin = async function(req, res) {
         let refreshExpiresdate = new Date();
         refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
 
-        const token = jwt.sign(payload, config.secretOrKey, {expiresIn: '1d'});
+        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
         const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
 
         if (!Utils.isNull(token) && !Utils.isNull(refreshToken)) {
             return res.status(200).json({
-                success: true,
-                message: "User successfully authenticated",
-                id: findUser[0].id,
-                email: findUser[0].email,
-                name: findUser[0].name,
-                phonenumber: findUser[0].phonenumber,
-                is_superuser: findUser[0].is_superuser,
-                is_staff: findUser[0].is_staff,
-                organization_id: findUser[0].organization_id,
-                accesstoken: token,
-                expiresdate: expiresdate.getTime(),
-                refreshtoken : refreshToken,
-                refreshexpiresdate: refreshExpiresdate.getTime()
-            })
+                code: "0000",
+                message: "success",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: {
+                    id: findUser.id,
+                    email: findUser.email,
+                    name: findUser.name,
+                    phonenumber: findUser.phonenumber,
+                    accesstoken: token,
+                    expiresdate: expiresdate.getTime(),
+                    refreshtoken : refreshToken,
+                    refreshexpiresdate: refreshExpiresdate.getTime()        
+                }
+            });
         }
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }
 
 exports.signup = async function(req, res) {
-    const { name, email, password, phonenumber, is_superuser, is_staff, organization_id } = req.body;
+    const { name, email, password, phonenumber } = req.body;
 
-    if (Utils.isNull(email) || Utils.isNull(password) || Utils.isNull(name)) {
+    if (Utils.isNull(email) || Utils.isNull(password) || Utils.isNull(name) || Utils.isNull(phonenumber)) {
         return res.status(400).json({
-            success: false,
-            message: "이메일, 비밀번호, 이름은 반드시 제공되어야 합니다." 
+            code: "8001",
+            message: "There is no required value.",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: null
         });
     }
 
@@ -95,44 +110,60 @@ exports.signup = async function(req, res) {
         let findUser = await User.findUser(email);
         if (findUser.length > 0) {
             return res.status(400).json({ 
-                success: false, 
-                message: "사용할 수 없는 이메일입니다." 
+                code: "8011",
+                message: "This email is not available.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
         let hash = await bcrypt.hash(password, 10);
-        let newUser = await User.createUser(name, email, hash, phonenumber, is_superuser, is_staff, organization_id);
+        let newUser = await User.createUser(name, email, hash, phonenumber);
 
         if (Utils.isEmpty(newUser) || newUser.changedRows === 0) {
             return res.status(500).json({ 
-                success: false, 
-                message: "fail to create user" 
+                code: "8012",
+                message: "fail to create user",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
         return res.status(200).json({ 
-            success: true, 
-            insertId: newUser.insertId 
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: {
+                user_id: newUser.insertId 
+            }
         });
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }
 
 exports.getToken = async function(req, res) {
     try {
-        const clientToken = req.headers['x-access-token'] || req.query.token
+        const clientToken = req.headers['x-access-token'] || req.query.token;
 
         if (Utils.isEmpty(clientToken)) {
             return res.status(400).json({
-                success: false,
-                message: 'not logged'
-            })
+                code: "8031",
+                message: "token is empty",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
+            });
         }
 
         let userid;
@@ -143,8 +174,11 @@ exports.getToken = async function(req, res) {
             const decoded = jwt.verify(clientToken, config.SECRET_OR_REFRESH_KEY);
             if (Utils.isEmpty(decoded)) {
                 return res.status(400).json({ 
-                    success: false,
-                    message: 'unauthorized'
+                    code: "8032",
+                    message: "unauthorized",
+                    additionalMessage: "",
+                    responseTime: Utils.getCurrentTime(),
+                    body: null
                 });
             }
 
@@ -154,9 +188,11 @@ exports.getToken = async function(req, res) {
         } catch (err) {
             console.error(err);
             return res.status(400).json({
-                success: false,
+                code: "8033",
                 message: "token expired",
-                error: err.message
+                additionalMessage: err.message,
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
@@ -178,23 +214,29 @@ exports.getToken = async function(req, res) {
         let refreshExpiresdate = new Date();
         refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
 
-        const token = jwt.sign(payload, config.secretOrKey, {expiresIn: '1d'});
+        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
         const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
 
         res.status(200).json({
-            success: true,
-            message: "token successfully updated",
-            accesstoken: token,
-            expiresdate: expiresdate.getTime(),
-            refreshtoken : refreshToken,
-            refreshExpiresdate: refreshExpiresdate.getTime(),
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: {
+                accesstoken: token,
+                expiresdate: expiresdate.getTime(),
+                refreshtoken : refreshToken,
+                refreshExpiresdate: refreshExpiresdate.getTime(),
+            }
         })
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }
@@ -204,9 +246,12 @@ exports.getAccessToken = async function(req, res) {
         const clientToken = req.headers['x-access-token'] || req.query.token;
         if (Utils.isEmpty(clientToken)) {
             return res.status(400).json({
-                success: false,
-                message: 'not logged'
-            })
+                code: "8031",
+                message: "token is empty",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
+            });
         }
 
         let userid;
@@ -218,8 +263,11 @@ exports.getAccessToken = async function(req, res) {
 
             if (Utils.isEmpty(decoded)) {
                 return res.status(400).json({ 
-                    success: false,
-                    message: 'unauthorized' 
+                    code: "8032",
+                    message: "unauthorized",
+                    additionalMessage: "",
+                    responseTime: Utils.getCurrentTime(),
+                    body: null
                 });
             }
 
@@ -229,9 +277,11 @@ exports.getAccessToken = async function(req, res) {
         } catch (err) {
             console.error(err);
             return res.status(400).json({
-                success: false,
+                code: "8033",
                 message: "token expired",
-                error: err.message
+                additionalMessage: err.message,
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
@@ -244,47 +294,62 @@ exports.getAccessToken = async function(req, res) {
         let expiresdate = new Date();
         expiresdate.setDate(expiresdate.getDate() + 1);
 
-        const token = jwt.sign(payload, config.secretOrKey, {expiresIn: '1d'});
+        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
         res.status(200).json({
-            success: true,
-            message: "token successfully updated",
-            accesstoken: token,
-            expiresdate: expiresdate.getTime()
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: {
+                accesstoken: token,
+                expiresdate: expiresdate.getTime()
+            }
         });
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }
 
 exports.updateUser = async function(req, res) {
     try {
-        const { email, password, newpassword, name, phonenumber, is_superuser, is_staff, organization_id } = req.body;
+        const { email, password, newpassword, name, phonenumber } = req.body;
 
         if (Utils.isNull(email) || Utils.isNull(password)) {
             return res.status(400).json({ 
-                success: false, 
-                message: "이메일과 비밀번호를 입력하세요." 
+                code: "8001",
+                message: "There is no required value.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
         let findUser = await User.findUser(email);
         if (Utils.isEmpty(findUser) || findUser.length === 0) {
             return res.status(400).json({ 
-                success: false, 
-                message: "존재하지 않는 사용자입니다."
+                code: "8002",
+                message: "This user does not exist.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
             });
         }
 
         let isMatch = await bcrypt.compare(password, findUser[0].password);
         if (isMatch === false) {
             return res.status(400).json({ 
-                success: false,
-                message: "비밀번호가 올바르지 않습니다."
+                code: "8003",
+                message: "ID/PW is incorrect.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
@@ -293,25 +358,33 @@ exports.updateUser = async function(req, res) {
             newHash = await bcrypt.hash(newpassword, 10);
         }
 
-        const updateUser = await User.updateUser(email, newHash, name, phonenumber, is_superuser, is_staff, organization_id);
+        const updateUser = await User.updateUser(email, newHash, name, phonenumber );
 
         if (Utils.isEmpty(updateUser) || updateUser.changedRows === 0) {
             return res.status(400).json({ 
-                success: false, 
-                message: "user update fail"
+                code: "8041",
+                message: "user update fail.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });    
         }
 
         return res.status(200).json({ 
-            success: true, 
-            message: "update success"
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: null
         });
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }
@@ -321,20 +394,26 @@ exports.getUserInfo = async function(req, res) {
         const clientToken = req.headers['x-access-token'] || req.query.token
         if(Utils.isNull(clientToken)) {
             return res.status(400).json({
-                success: false,
-                message: 'not logged'
+                code: "8031",
+                message: "token is empty",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null
             })
         }
 
         let email;
 
         try {
-            const decoded = jwt.verify(clientToken, config.secretOrKey);
+            const decoded = jwt.verify(clientToken, config.SECRET_OR_KEY);
 
             if (Utils.isEmpty(decoded)) {
                 return res.status(400).json({ 
-                    success: false,
-                    message: 'unauthorized' 
+                    code: "8032",
+                    message: "unauthorized",
+                    additionalMessage: "",
+                    responseTime: Utils.getCurrentTime(),
+                    body: null
                 });
             }
 
@@ -342,37 +421,47 @@ exports.getUserInfo = async function(req, res) {
         } catch (err) {
             console.error(err);
             return res.status(400).json({
-                success: false,
+                code: "8033",
                 message: "token expired",
-                error: err.message
+                additionalMessage: err.message,
+                responseTime: Utils.getCurrentTime(),
+                body: null
             });
         }
 
-        let findUser = await User.findUser(email);
-        if (Utils.isEmpty(findUser) || findUser.length === 0) {
+        let findUsers = await User.findUser(email);
+        if (Utils.isEmpty(findUsers) || findUsers.length === 0) {
             return res.status(400).json({ 
-                success: false, 
-                message: "존재하지 않는 사용자입니다."
+                code: "8002",
+                message: "This user does not exist.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
             });
         }
+
+        const findUser = findUsers[0];
 
         return res.status(200).json({
-            success: true,
-            message: "User successfully authenticated",
-            id: findUser[0].id,
-            email: findUser[0].email,
-            name: findUser[0].name,
-            phonenumber: findUser[0].phonenumber,
-            is_superuser: findUser[0].is_superuser,
-            is_staff: findUser[0].is_staff,
-            organization_id: findUser[0].organization_id,
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: {
+                id: findUser.id,
+                email: findUser.email,
+                name: findUser.name,
+                phonenumber: findUser.phonenumber,
+            }
         });
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
+            code: "9999",
             message: "exception has occurred",
-            error: err.message
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
         });
     }
 }

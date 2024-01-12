@@ -109,3 +109,15 @@ exports.printTimeStamp = function() {
 
     console.log('[TIMESTAMP] ' + resultStr + ' [' + dateToTimeStamp + ']');
 }
+
+exports.getCurrentTime = function() {
+    const date = new Date();
+    
+    return date.getFullYear() + '-' +
+           this.numberPad((date.getMonth() + 1), 2) + '-' +
+           this.numberPad(date.getDate(), 2) + ' ' +
+           this.numberPad(date.getHours(),2) + ':' +
+           this.numberPad(date.getMinutes(),2) + ':' +
+           this.numberPad(date.getSeconds(),2) + '.' +
+           this.numberPad(date.getMilliseconds(), 3);
+}

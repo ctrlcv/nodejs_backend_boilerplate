@@ -6,7 +6,7 @@ exports.findUser = async (email) => {
         const query = 
         `
             SELECT *
-              FROM user
+              FROM users
              WHERE email = '${email}'
         `
         const result = await db.query(query);
@@ -17,32 +17,17 @@ exports.findUser = async (email) => {
     }
 }
 
-exports.createUser = async (name, email, password, phonenumber, is_superuser, is_staff, organization_id) => {
+exports.createUser = async (name, email, password, phonenumber) => {
     let query1 = `
-        INSERT INTO user
+        INSERT INTO users
             (email, password, name`;
     
     let query2 = `) VALUES (
             '${email}', '${password}', '${name}'`;
 
     if (!Utils.isEmpty(phonenumber)) {
-        query1 += `, phonenumber`;
+        query1 += `, phone_number`;
         query2 += `, '${phonenumber}'`;
-    }
-
-    if (!Utils.isEmpty(is_superuser)) {
-        query1 += `, is_superuser`;
-        query2 += `, ${is_superuser}`;
-    }
-
-    if (!Utils.isEmpty(is_staff)) {
-        query1 += `, is_staff`;
-        query2 += `, ${is_staff}`;
-    }
-
-    if (!Utils.isEmpty(organization_id)) {
-        query1 += `, organization_id`;
-        query2 += `, ${organization_id}`;
     }
 
     let query3 = `)`;
@@ -51,9 +36,9 @@ exports.createUser = async (name, email, password, phonenumber, is_superuser, is
     return result[0];
 }
 
-exports.updateUser = async (email, newpassword, name, phonenumber, is_superuser, is_staff, organization_id) => {
+exports.updateUser = async (email, newpassword, name, phonenumber) => {
     const query = `
-        UPDATE user
+        UPDATE users
         SET
             updated_ts = CURRENT_TIMESTAMP `;
 
@@ -68,19 +53,7 @@ exports.updateUser = async (email, newpassword, name, phonenumber, is_superuser,
     }
 
     if (!Utils.isEmpty(phonenumber)) {
-        whereStr += `, phonenumber = '${phonenumber}'`;
-    }
-
-    if (!Utils.isEmpty(is_superuser)) {
-        whereStr += `, is_superuser = ${is_superuser}`;
-    }
-
-    if (!Utils.isEmpty(is_staff)) {
-        whereStr += `, is_staff = ${is_staff}`;
-    }
-
-    if (!Utils.isEmpty(organization_id)) {
-        whereStr += `, organization_id = ${organization_id}`;
+        whereStr += `, phone_number = '${phonenumber}'`;
     }
 
     whereStr += `
