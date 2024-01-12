@@ -52,7 +52,7 @@ exports.signin = async function(req, res) {
         refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
 
         const token = jwt.sign(payload, config.secretOrKey, {expiresIn: '1d'});
-        const refreshToken = jwt.sign(refreshPayload, config.secretOrRefreshKey, {expiresIn: '30d'});
+        const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
 
         if (!Utils.isNull(token) && !Utils.isNull(refreshToken)) {
             return res.status(200).json({
@@ -140,7 +140,7 @@ exports.getToken = async function(req, res) {
         let useremail;
 
         try {
-            const decoded = jwt.verify(clientToken, config.secretOrRefreshKey);
+            const decoded = jwt.verify(clientToken, config.SECRET_OR_REFRESH_KEY);
             if (Utils.isEmpty(decoded)) {
                 return res.status(400).json({ 
                     success: false,
@@ -179,7 +179,7 @@ exports.getToken = async function(req, res) {
         refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
 
         const token = jwt.sign(payload, config.secretOrKey, {expiresIn: '1d'});
-        const refreshToken = jwt.sign(refreshPayload, config.secretOrRefreshKey, {expiresIn: '30d'});
+        const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
 
         res.status(200).json({
             success: true,
@@ -214,7 +214,7 @@ exports.getAccessToken = async function(req, res) {
         let useremail;
 
         try {
-            const decoded = jwt.verify(clientToken, config.secretOrRefreshKey);
+            const decoded = jwt.verify(clientToken, config.SECRET_OR_REFRESH_KEY);
 
             if (Utils.isEmpty(decoded)) {
                 return res.status(400).json({ 

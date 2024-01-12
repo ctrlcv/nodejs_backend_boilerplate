@@ -12,7 +12,7 @@ const verifyToken = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(clientToken, config.secretOrKey);
+        const decoded = jwt.verify(clientToken, config.SECRET_OR_KEY);
 
         if (decoded) {
             res.locals.userId = decoded.user_id;
