@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const config = require('./../config/dev');
 const Utils = require('./../service/utils');
 
-exports.signin = async function(req, res) {
+exports.signIn = async function(req, res) {
     try {
         const { email, password } = req.body;
 
@@ -14,7 +14,7 @@ exports.signin = async function(req, res) {
                 message: "There is no required value.",
                 additionalMessage: "",
                 responseTime: Utils.getCurrentTime(),
-                body: null 
+                body: null
             });
         }
 
@@ -54,13 +54,13 @@ exports.signin = async function(req, res) {
             id: findUser.id
         };
 
-        let expiresdate = new Date();
-        expiresdate.setDate(expiresdate.getDate() + 1);
+        let expireDate = new Date();
+        expireDate.setDate(expireDate.getDate() + 7);
 
-        let refreshExpiresdate = new Date();
-        refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
+        let refreshExpireDate = new Date();
+        refreshExpireDate.setDate(refreshExpireDate.getDate() + 30);
 
-        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
+        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '7d'});
         const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
 
         if (!Utils.isNull(token) && !Utils.isNull(refreshToken)) {
@@ -73,11 +73,12 @@ exports.signin = async function(req, res) {
                     id: findUser.id,
                     email: findUser.email,
                     name: findUser.name,
-                    phonenumber: findUser.phonenumber,
-                    accesstoken: token,
-                    expiresdate: expiresdate.getTime(),
-                    refreshtoken : refreshToken,
-                    refreshexpiresdate: refreshExpiresdate.getTime()        
+                    phoneNumber: findUser.phone_number,
+                    imageUrl: findUser.image_url,
+                    accessToken: token,
+                    expireDate: expireDate.getTime(),
+                    refreshToken : refreshToken,
+                    refreshExpireDate: refreshExpireDate.getTime()
                 }
             });
         }
@@ -93,7 +94,7 @@ exports.signin = async function(req, res) {
     }
 }
 
-exports.signup = async function(req, res) {
+exports.signUp = async function(req, res) {
     const { name, email, password, phonenumber } = req.body;
 
     if (Utils.isNull(email) || Utils.isNull(password) || Utils.isNull(name) || Utils.isNull(phonenumber)) {
@@ -140,95 +141,6 @@ exports.signup = async function(req, res) {
                 user_id: newUser.insertId 
             }
         });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({
-            code: "9999",
-            message: "exception has occurred",
-            additionalMessage: err.message,
-            responseTime: Utils.getCurrentTime(),
-            body: null 
-        });
-    }
-}
-
-exports.getToken = async function(req, res) {
-    try {
-        const clientToken = req.headers['x-access-token'] || req.query.token;
-
-        if (Utils.isEmpty(clientToken)) {
-            return res.status(400).json({
-                code: "8031",
-                message: "token is empty",
-                additionalMessage: "",
-                responseTime: Utils.getCurrentTime(),
-                body: null
-            });
-        }
-
-        let userid;
-        let name;
-        let useremail;
-
-        try {
-            const decoded = jwt.verify(clientToken, config.SECRET_OR_REFRESH_KEY);
-            if (Utils.isEmpty(decoded)) {
-                return res.status(400).json({ 
-                    code: "8032",
-                    message: "unauthorized",
-                    additionalMessage: "",
-                    responseTime: Utils.getCurrentTime(),
-                    body: null
-                });
-            }
-
-            userid = decoded.id;
-            name = decoded.name;
-            useremail = decoded.email;
-        } catch (err) {
-            console.error(err);
-            return res.status(400).json({
-                code: "8033",
-                message: "token expired",
-                additionalMessage: err.message,
-                responseTime: Utils.getCurrentTime(),
-                body: null
-            });
-        }
-
-        const payload = {
-            id: userid,
-            name: name,
-            email: useremail
-        };
-
-        const refreshPayload = {
-            email: useremail,
-            name: name,
-            id: userid
-        }
-
-        let expiresdate = new Date();
-        expiresdate.setDate(expiresdate.getDate() + 1);
-
-        let refreshExpiresdate = new Date();
-        refreshExpiresdate.setDate(refreshExpiresdate.getDate() + 30);
-
-        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
-        const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
-
-        res.status(200).json({
-            code: "0000",
-            message: "success",
-            additionalMessage: "",
-            responseTime: Utils.getCurrentTime(),
-            body: {
-                accesstoken: token,
-                expiresdate: expiresdate.getTime(),
-                refreshtoken : refreshToken,
-                refreshExpiresdate: refreshExpiresdate.getTime(),
-            }
-        })
     } catch (err) {
         console.error(err);
         return res.status(500).json({
@@ -291,8 +203,8 @@ exports.getAccessToken = async function(req, res) {
             email: useremail
         };
 
-        let expiresdate = new Date();
-        expiresdate.setDate(expiresdate.getDate() + 1);
+        let expireDate = new Date();
+        expireDate.setDate(expireDate.getDate() + 1);
 
         const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '1d'});
         res.status(200).json({
@@ -301,8 +213,8 @@ exports.getAccessToken = async function(req, res) {
             additionalMessage: "",
             responseTime: Utils.getCurrentTime(),
             body: {
-                accesstoken: token,
-                expiresdate: expiresdate.getTime()
+                accessToken: token,
+                expireDate: expireDate.getTime()
             }
         });
     } catch (err) {
@@ -451,7 +363,77 @@ exports.getUserInfo = async function(req, res) {
                 id: findUser.id,
                 email: findUser.email,
                 name: findUser.name,
-                phonenumber: findUser.phonenumber,
+                phoneNumber: findUser.phone_number,
+                imageUrl: findUser.image_url,
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            code: "9999",
+            message: "exception has occurred",
+            additionalMessage: err.message,
+            responseTime: Utils.getCurrentTime(),
+            body: null 
+        });
+    }
+}
+
+exports.signInByToken = async function(req, res) {
+    try {
+        const userId = res.locals.id;
+        const useremail = res.locals.email;
+        const name = res.locals.name;
+
+        let findUsers = await User.findUser(useremail);
+        if (Utils.isEmpty(findUsers) || findUsers.length === 0) {
+            return res.status(200).json({ 
+                code: "8014",
+                message: "This user does not exist.",
+                additionalMessage: "",
+                responseTime: Utils.getCurrentTime(),
+                body: null 
+            });
+        }
+
+        const findUser = findUsers[0];
+
+        const payload = {
+            id: userId,
+            name: name,
+            email: useremail
+        };
+
+        const refreshPayload = {
+            email: useremail,
+            name: name,
+            id: userId
+        }
+
+        let expireDate = new Date();
+        expireDate.setDate(expireDate.getDate() + 7);
+
+        let refreshExpireDate = new Date();
+        refreshExpireDate.setDate(refreshExpireDate.getDate() + 30);
+
+        const token = jwt.sign(payload, config.SECRET_OR_KEY, {expiresIn: '7d'});
+        const refreshToken = jwt.sign(refreshPayload, config.SECRET_OR_REFRESH_KEY, {expiresIn: '30d'});
+        
+        return res.status(200).json({
+            code: "0000",
+            message: "success",
+            additionalMessage: "",
+            responseTime: Utils.getCurrentTime(),
+            body: {
+                id: findUser.id,
+                email: findUser.email,
+                name: findUser.name,
+                phoneNumber: findUser.phone_number,
+                imageUrl: findUser.image_url,
+                accessToken: token,
+                expireDate: expireDate.getTime(),
+                refreshToken : refreshToken,
+                refreshExpireDate: refreshExpireDate.getTime()
             }
         });
     } catch (err) {
